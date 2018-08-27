@@ -1,12 +1,12 @@
 * cl-plot
-
 ** License
 
+#+BEGIN_SRC
 **********************************************************************
 Copyright (c) 2018 Orm Finnendahl <orm.finnendahl@selma.hfmdk-frankfurt.de>
-;;;
+
 Revision history: See git repository.
-;;;
+
 This program is free software; you can redistribute it and/or
 modify it under the terms of the Gnu Public License, version 2 or
 later. See https://www.gnu.org/licenses/gpl-2.0.html for the text
@@ -16,11 +16,13 @@ This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
-;;;
-**********************************************************************
 
-cl-plot is a thin Common Lisp Wrapper for gnuplot. It expects gnuplot
-at /usr/bin/gnuplot (change to your needs).
+**********************************************************************
+#+END_SRC
+
+cl-plot is a thin Common Lisp Wrapper for [[http://gnuplot.info/][gnuplot]]. It expects gnuplot
+at /usr/bin/gnuplot (change to your needs using the variable
+=*GNUPLOT-COMMAND*=).
 
 The central method is plot, which at this point accepts lists,
 one-dimensional arrays or functions.
@@ -34,12 +36,20 @@ one-dimensional arrays or functions.
    Then load it with
 
    #+BEGIN_SRC lisp
-     (ql:quickload "cl-plot")
+     CL-USER> (ql:quickload "cl-plot")
+     To load "cl-plot":
+     Load 1 ASDF system:
+     cl-plot
+     ; Loading "cl-plot"
+     .
+     ("cl-plot")
+     CL-USER> (in-package :cl-plot)
+     #<PACKAGE "CL-PLOT">
+     CL-PLOT> 
+   #+END_SRC
 
-     (in-package :cl-plot)
-
-     ;;; plotting data lists:
-
+*** Plotting Data Lists
+   #+BEGIN_SRC lisp
      ;;; 2-dimensional:
 
      (plot
@@ -52,19 +62,18 @@ one-dimensional arrays or functions.
      (plot
       (loop for count below 20
          collect (random 40.0)))
-
-
-     ;;; plotting arrays:
+   #+END_SRC
+*** Plotting Arrays
+   #+BEGIN_SRC lisp
 
      (plot #(3 1 8 6 5 2 4))
 
      (plot #((0 3) (1 1) (2 8) (3 6) (4 5) (5 2) (6 4)))
 
      (plot #(#(0 3) #(1 1) #(2 8) #(3 6) #(4 5) #(5 2) #(6 4)))
-
-
-     ;;; plotting functions:
-
+   #+END_SRC
+*** Plotting Functions
+   #+BEGIN_SRC lisp
      (plot #'sin :region `(0 ,(* 2 pi)))
 
      (plot #'exp :region `(0 4))

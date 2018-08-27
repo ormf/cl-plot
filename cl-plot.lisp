@@ -40,14 +40,16 @@
 (defgeneric plot (data &rest args &key region header options grid &allow-other-keys))
 
 (defmethod plot ((data list) &rest args &key region (header *gnuplot-header*) (options *gnuplot-options*) (grid t))
-  "Plot input data given as a list of data lists with > 2 elements of
-type number. Interprets the first two elements of the sublists as x y
-pairs."
+  "Plot input data given as a list. In case of a list of numbers, the
+data is interpreted as y values and their index is taken as x
+value. In case the list is comprised of sublists, the first two
+elements of the sublists are interpreted as x y pairs."
   (declare (ignore header options grid))
-  (let* ((region (or region (let ((x-vals (mapcar #'first data)))
-                              (list
-                               (float (apply #'min x-vals) 1.0)
-                               (float (apply #'max x-vals) 1.0)))))
+  (let* ((region (or region (if (numberp (first data)) `(0 ,(1- (length data)))
+                                (let ((x-vals (mapcar #'first data)))
+                                  (list
+                                   (float (apply #'min x-vals) 1.0)
+                                   (float (apply #'max x-vals) 1.0))))))
          (gnuplot-instance
           (uiop:launch-program
            (list *gnuplot-program*  "-p" "-e"
@@ -60,8 +62,53 @@ pairs."
                       do (format out "~a ~a~%" idx x)))
         (t (format out "~{~{~a ~}~%~}" data))))))
 
+#|
+     Examples:
+
+     (plot '(3 1 8 6 5 2 4))
+
+     (plot '((0 3) (1 1) (2 8) (3 6) (4 5) (5 2) (6 4)))
+
+|#
+
+(defmethod plot ((obj simple-array) &rest args &key region (header *gnuplot-header*) (options *gnuplot-options*) (grid t))
+  "Plot input data given as a one-dimensional array. :region specifies array-bounds (rounded to nearest integer)."
+  (declare (ignore header options grid))
+  (let* ((gnuplot-instance
+          (uiop:launch-program
+           (list *gnuplot-program*  "-p" "-e"
+                 (apply #'construct-plot-command :region region args))
+           :input :stream)))
+    (with-open-stream (out (uiop:process-info-input gnuplot-instance))
+      (destructuring-bind (start end) (or region `(0 ,(1- (length obj))))
+        (loop for idx from (round start) to (round end)
+           do
+             (let ((item (aref obj idx)))
+               (cond
+                 ((numberp item) (format out "~a ~a~%" idx (float (aref obj idx) 1.0)))
+                 (t (cond
+                      ((consp item)
+                       (format out "~a ~a~%"
+                               (float (first item) 1.0)
+                               (float (second item) 1.0)))
+                      (t
+                       (format out "~a ~a~%"
+                               (float (aref item 0) 1.0)
+                               (float (aref item 1) 1.0))))))))))))
+
+#|
+     Examples:
+
+     (plot #(3 1 8 6 5 2 4))
+
+     (plot #((0 3) (1 1) (2 8) (3 6) (4 5) (5 2) (6 4)))
+
+     (plot #(#(0 3) #(1 1) #(2 8) #(3 6) #(4 5) #(5 2) #(6 4)))
+|#
+
 (defmethod plot ((fn function) &rest args
-                 &key (region '(0 1)) (header *gnuplot-header*) (options *gnuplot-options*) (num-values 100) (grid t))
+                 &key (region '(0 1)) (header *gnuplot-header*)
+                   (options *gnuplot-options*) (num-values 100) (grid t))
   "Plot function (has to be a function accepting 1 argument). :region specifies xmin and xmax (default (0 1)),
 :num-values the number of values to plot (default 100)."
   (declare (ignore header options grid))
@@ -79,32 +126,6 @@ pairs."
     (with-open-stream (out (uiop:process-info-input gnuplot-instance))
       (format out "~{~{~a ~}~%~}" data))))
 
-(defmethod plot ((obj simple-array) &rest args &key region (header *gnuplot-header*) (options *gnuplot-options*) (grid t))
-  "Plot input data given as a one-dimensional array. :region specifies array-bounds (rounded to nearest integer)."
-  (declare (ignore header options grid))
-  (let* ((gnuplot-instance
-          (uiop:launch-program
-           (list *gnuplot-program*  "-p" "-e"
-                 (apply #'construct-plot-command :region region args))
-           :input :stream)))
-    (with-open-stream (out (uiop:process-info-input gnuplot-instance))
-      (destructuring-bind (start end) (or region `(0 ,(1- (length obj))))
-        (loop for idx from (round start) to (round end)
-           do
-             (let ((item (aref obj idx)))
-               (cond
-                 ((> (length item) 1)
-                  (cond
-                    ((consp item)
-                     (format out "~a ~a~%"
-                             (float (first item) 1.0)
-                             (float (second item) 1.0)))
-                    (t
-                     (format out "~a ~a~%"
-                             (float (aref item 0) 1.0)
-                             (float (aref item 1) 1.0)))))
-                 (t (format out "~a ~a~%" idx (float (aref obj idx) 1.0))))))))))
-
 #|
 
 Examples:
@@ -116,10 +137,5 @@ Examples:
 ;; default region is '(0 1)
 
 (plot #'sin)
-
-(plot
- (loop for count below 20
-    collect (list count (random 40.0)))
- :grid nil)
 
 |#

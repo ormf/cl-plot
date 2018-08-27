@@ -20,4 +20,8 @@
 (defpackage #:cl-plot
   (:use #:cl)
   (:export
-   #:plot))
+   #:PLOT
+   #:CONSTRUCT-PLOT-COMMAND
+   #:*GNUPLOT-HEADER*
+   #:*GNUPLOT-PROGRAM*
+   #:*GNUPLOT-OPTIONS*))
