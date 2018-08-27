@@ -3,6 +3,7 @@
 
 #+BEGIN_SRC
 **********************************************************************
+
 Copyright (c) 2018 Orm Finnendahl <orm.finnendahl@selma.hfmdk-frankfurt.de>
 
 Revision history: See git repository.
@@ -20,14 +21,27 @@ GNU General Public License for more details.
 **********************************************************************
 #+END_SRC
 
-cl-plot is a thin Common Lisp Wrapper for [[http://gnuplot.info/][gnuplot]]. It expects gnuplot
-at /usr/bin/gnuplot (change to your needs using the variable
-=*GNUPLOT-COMMAND*=).
 
-The central method is plot, which at this point accepts lists,
-one-dimensional arrays or functions.
+** Overview
+
+   cl-plot is a thin Common Lisp Wrapper for [[http://gnuplot.info/][gnuplot]]. It expects
+   gnuplot at /usr/bin/gnuplot (change to your needs using the
+   variable =*GNUPLOT-COMMAND*=).
+
+   The central function is =plot=, which at this point accepts lists,
+   one-dimensional arrays or functions. =plot= is implemented as a
+   generic function so that it can be specialized on different data
+   types and easily extended (see for example the [[htts://github.com/ormf/incudine-plot][incudine-plot]]
+   package which is used for visualising musical data like envelopes
+   or buffers).
+
+   The =plot= function returns its argument unchanged. This enables to
+   wrap the (plot ...) form around suitable subexpressions within code
+   to graphically monitor intermediate results of larger code blocks
+   without changing the overall outcome of the code.
 
 ** INSTALLATION
+
    cl-plot depends on uiop. 
 
    The recommended way is to use quicklisp and put the cl-plot folder
@@ -83,4 +97,5 @@ one-dimensional arrays or functions.
      (plot #'sin)
 
    #+END_SRC
+
 

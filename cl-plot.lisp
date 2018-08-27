@@ -43,7 +43,7 @@
   "Plot input data given as a list. In case of a list of numbers, the
 data is interpreted as y values and their index is taken as x
 value. In case the list is comprised of sublists, the first two
-elements of the sublists are interpreted as x y pairs."
+elements of the sublists are interpreted as x y pairs. Return the original data list."
   (declare (ignore header options grid))
   (let* ((region (or region (if (numberp (first data)) `(0 ,(1- (length data)))
                                 (let ((x-vals (mapcar #'first data)))
@@ -60,7 +60,8 @@ elements of the sublists are interpreted as x y pairs."
         ((numberp (car data))
                  (loop for idx from 0 for x in data
                       do (format out "~a ~a~%" idx x)))
-        (t (format out "~{~{~a ~}~%~}" data))))))
+        (t (format out "~{~{~a ~}~%~}" data)))))
+  (values data))
 
 #|
      Examples:
@@ -72,7 +73,8 @@ elements of the sublists are interpreted as x y pairs."
 |#
 
 (defmethod plot ((obj simple-array) &rest args &key region (header *gnuplot-header*) (options *gnuplot-options*) (grid t))
-  "Plot input data given as a one-dimensional array. :region specifies array-bounds (rounded to nearest integer)."
+  "Plot input data given as a one-dimensional array. :region specifies
+array-bounds (rounded to nearest integer). Return the original array"
   (declare (ignore header options grid))
   (let* ((gnuplot-instance
           (uiop:launch-program
@@ -94,7 +96,8 @@ elements of the sublists are interpreted as x y pairs."
                       (t
                        (format out "~a ~a~%"
                                (float (aref item 0) 1.0)
-                               (float (aref item 1) 1.0))))))))))))
+                               (float (aref item 1) 1.0)))))))))))
+  (values obj))
 
 #|
      Examples:
@@ -110,7 +113,7 @@ elements of the sublists are interpreted as x y pairs."
                  &key (region '(0 1)) (header *gnuplot-header*)
                    (options *gnuplot-options*) (num-values 100) (grid t))
   "Plot function (has to be a function accepting 1 argument). :region specifies xmin and xmax (default (0 1)),
-:num-values the number of values to plot (default 100)."
+:num-values the number of values to plot (default 100). Return the original function"
   (declare (ignore header options grid))
   (let* ((gnuplot-instance
           (uiop:launch-program
@@ -124,7 +127,8 @@ elements of the sublists are interpreted as x y pairs."
                       (let ((x (+ xmin (/ (* count (- xmax xmin)) num-values))))
                         (list (float x 1.0) (float (funcall fn x) 1.0)))))))
     (with-open-stream (out (uiop:process-info-input gnuplot-instance))
-      (format out "~{~{~a ~}~%~}" data))))
+      (format out "~{~{~a ~}~%~}" data)))
+  (values fn))
 
 #|
 
