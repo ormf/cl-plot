@@ -23,7 +23,7 @@ GNU General Public License for more details.
 
 ** Overview
 
-   cl-plot is a thin Common Lisp Wrapper for [[http://gnuplot.info/][gnuplot]]. It expects
+   cl-plot is a thin Common Lisp Wrapper for [[http://gnuplot.info/][gnuplot]] It expects
    gnuplot at /usr/bin/gnuplot (change to your needs using the
    variable =*GNUPLOT-COMMAND*=).
 
@@ -31,8 +31,8 @@ GNU General Public License for more details.
    one-dimensional arrays or functions. =plot= is implemented as a
    generic function so that it can be specialized on different data
    types and easily extended (see for example the [[htts://github.com/ormf/incudine-plot][incudine-plot]]
-   package which is used for visualising musical data like envelopes
-   or buffers).
+   package on this github account which is used for visualising
+   musical data like envelopes or buffers).
 
    The =plot= function returns its argument unchanged. This enables to
    wrap the (plot ...) form around suitable subexpressions within code
