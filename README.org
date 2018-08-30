@@ -21,7 +21,6 @@ GNU General Public License for more details.
 **********************************************************************
 #+END_SRC
 
-
 ** Overview
 
    cl-plot is a thin Common Lisp Wrapper for [[http://gnuplot.info/][gnuplot]]. It expects
@@ -45,7 +44,7 @@ GNU General Public License for more details.
    cl-plot depends on uiop. 
 
    The recommended way is to use quicklisp and put the cl-plot folder
-   into <home>/quicklisp/local-projects/.
+   into <user-home-dir>/quicklisp/local-projects/.
 
    Then load it with
 
