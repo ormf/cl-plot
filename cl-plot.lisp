@@ -37,30 +37,67 @@
                "'<cat' "
                options))
 
+(defun launch-gnuplot (&rest args &key region &allow-other-keys)
+  (uiop:launch-program
+   (list *gnuplot-program*  "-p" "-e"
+         (apply #'construct-plot-command :region region args))
+   :input :stream))
+
 (defgeneric plot (data &rest args &key region header options grid &allow-other-keys))
 
-(defmethod plot ((data list) &rest args &key region (header *gnuplot-header*) (options *gnuplot-options*) (grid t))
-  "Plot input data given as a list. In case of a list of numbers, the
-data is interpreted as y values and their index is taken as x
-value. In case the list is comprised of sublists, the first two
-elements of the sublists are interpreted as x y pairs. Return the original data list."
+ (format out "~a ~a~%" idx x)
+
+;;;  generic function returning gnuplot data. The Return value should
+;;;  be of the format (values x y &rest z ...)
+
+(defgeneric gnuplot-data-fn (obj idx))
+
+(defmethod gnuplot-data-fn ((obj number) idx)
+  (values idx obj))
+
+(defmethod gnuplot-data-fn ((obj list) idx)
+  (cond ((> (length obj) 1)
+         (apply #'values obj))
+        ((numberp (first obj)) (values idx (first obj)))
+        (:else (error "value not a number: ~a" (first obj)))))
+
+(defmethod gnuplot-data-fn ((obj simple-array) idx)
+  (cond ((> (length obj) 1)
+         (apply #'values (coerce obj 'list)))
+        ((numberp (aref obj 0)) (values (aref obj 0)))
+        (:else (error "value not a number: ~a" (aref obj 0)))))
+
+(defgeneric get-first (obj))
+
+(defmethod get-first ((obj list))
+  (first obj))
+
+(defmethod get-first ((obj simple-array))
+  (aref obj 0))
+
+
+(defmethod plot ((data list) &rest args &key region
+                                          (header *gnuplot-header*)
+                                          (data-fn #'gnuplot-data-fn)
+                                          (options *gnuplot-options*) (grid t))
+  "Plot input data given as a list. The :data-fn key specifies a
+  function which is applied to each element of the sequence (with its
+  idx as second argument) and should return the data of one gnuplot
+  dataset as values. The default data-fn handles numbers in the list
+  as y values and their index is taken as x value. In case the list is
+  comprised of sublists, the first elements of the sublists are
+  interpreted as x y ... values. plot returns the original data list."
   (declare (ignore header options grid))
   (let* ((region (or region (if (numberp (first data)) `(0 ,(1- (length data)))
-                                (let ((x-vals (mapcar #'first data)))
+                                (let ((x-vals (mapcar #'get-first data)))
                                   (list
                                    (float (apply #'min x-vals) 1.0)
                                    (float (apply #'max x-vals) 1.0))))))
-         (gnuplot-instance
-          (uiop:launch-program
-           (list *gnuplot-program*  "-p" "-e"
-                 (apply #'construct-plot-command :region region args))
-           :input :stream)))
+         (gnuplot-instance (apply #'launch-gnuplot :region region args)))
     (with-open-stream (out (uiop:process-info-input gnuplot-instance))
-      (cond
-        ((numberp (car data))
-                 (loop for idx from 0 for x in data
-                      do (format out "~a ~a~%" idx x)))
-        (t (format out "~{~{~a ~}~%~}" data)))))
+      (loop for idx from 0 for x in data
+         do (format out "~{~,4f~^ ~}~%"
+                    (multiple-value-list (funcall data-fn x idx))))))
   (values data))
 
 #|
@@ -70,34 +107,34 @@ elements of the sublists are interpreted as x y pairs. Return the original data 
 
      (plot '((0 3) (1 1) (2 8) (3 6) (4 5) (5 2) (6 4)))
 
+     (plot '(#(0 3) #(1 1) #(2 8) #(3 6) #(4 5) #(5 2) #(6 4)))
+
 |#
 
-(defmethod plot ((obj simple-array) &rest args &key region (header *gnuplot-header*) (options *gnuplot-options*) (grid t))
-  "Plot input data given as a one-dimensional array. :region specifies
-array-bounds (rounded to nearest integer). Return the original array"
+(defmethod plot ((data simple-array) &rest args &key region
+                                          (header *gnuplot-header*)
+                                          (data-fn #'gnuplot-data-fn)
+                                          (options *gnuplot-options*) (grid t))
+  "Plot input data given as a list. The :data-fn key specifies a
+  function which is applied to each element of the sequence (with its
+  idx as second argument) and should return the data of one gnuplot
+  dataset as values. The default data-fn handles numbers in the list
+  as y values and their index is taken as x value. In case the list is
+  comprised of sublists, the first elements of the sublists are
+  interpreted as x y ... values. plot returns the original data list."
   (declare (ignore header options grid))
-  (let* ((gnuplot-instance
-          (uiop:launch-program
-           (list *gnuplot-program*  "-p" "-e"
-                 (apply #'construct-plot-command :region region args))
-           :input :stream)))
+  (let* ((region (or region (if (numberp (aref data 0)) `(0 ,(1- (length data)))
+                                (let ((x-vals (loop for x across data collect
+                                                   (get-first x))))
+                                  (list
+                                   (float (apply #'min x-vals) 1.0)
+                                   (float (apply #'max x-vals) 1.0))))))
+         (gnuplot-instance (apply #'launch-gnuplot :region region args)))
     (with-open-stream (out (uiop:process-info-input gnuplot-instance))
-      (destructuring-bind (start end) (or region `(0 ,(1- (length obj))))
-        (loop for idx from (round start) to (round end)
-           do
-             (let ((item (aref obj idx)))
-               (cond
-                 ((numberp item) (format out "~a ~a~%" idx (float (aref obj idx) 1.0)))
-                 (t (cond
-                      ((consp item)
-                       (format out "~a ~a~%"
-                               (float (first item) 1.0)
-                               (float (second item) 1.0)))
-                      (t
-                       (format out "~a ~a~%"
-                               (float (aref item 0) 1.0)
-                               (float (aref item 1) 1.0)))))))))))
-  (values obj))
+      (loop for idx from 0 for x across data
+         do (format out "~{~,4f~^ ~}~%"
+                    (multiple-value-list (funcall data-fn x idx))))))
+  (values data))
 
 #|
      Examples:
@@ -107,27 +144,25 @@ array-bounds (rounded to nearest integer). Return the original array"
      (plot #((0 3) (1 1) (2 8) (3 6) (4 5) (5 2) (6 4)))
 
      (plot #(#(0 3) #(1 1) #(2 8) #(3 6) #(4 5) #(5 2) #(6 4)))
+
 |#
 
 (defmethod plot ((fn function) &rest args
                  &key (region '(0 1)) (header *gnuplot-header*)
-                   (options *gnuplot-options*) (num-values 100) (grid t))
-  "Plot function (has to be a function accepting 1 argument). :region specifies xmin and xmax (default (0 1)),
-:num-values the number of values to plot (default 100). Return the original function"
+                   (options *gnuplot-options*) (num-values 100) (grid t)
+                   &allow-other-keys)
+  "Plot function fn (fn has to be a function accepting 1 argument). :region specifies xmin and xmax (default (0 1)),
+:num-values the number of values to plot (default 100). Return the
+original function."
   (declare (ignore header options grid))
-  (let* ((gnuplot-instance
-          (uiop:launch-program
-           (list *gnuplot-program*  "-p" "-e"
-                 (apply #'construct-plot-command :region region args))
-           :input :stream))
-         (data (destructuring-bind (xmin xmax) region
-                 (loop
-                    for count below (1+ num-values)
-                    collect
-                      (let ((x (+ xmin (/ (* count (- xmax xmin)) num-values))))
-                        (list (float x 1.0) (float (funcall fn x) 1.0)))))))
+  (let* ((gnuplot-instance (apply #'launch-gnuplot :region region args)))
     (with-open-stream (out (uiop:process-info-input gnuplot-instance))
-      (format out "~{~{~a ~}~%~}" data)))
+      (destructuring-bind (xmin xmax) region
+        (loop
+           for count below (1+ num-values)
+           collect
+             (let ((x (+ xmin (/ (* count (- xmax xmin)) num-values))))
+               (format out "~,4f ~,4f~%" x (funcall fn x)))))))
   (values fn))
 
 #|
