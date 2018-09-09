@@ -107,31 +107,9 @@ in seq."
 
 |#
 
-(defmethod plot ((data sequence) &rest args &key region
-                                              (header *gnuplot-header*)
-                                              (data-fn #'gnuplot-data-fn)
-                                              (options *gnuplot-options*) (grid t))
-  "Plot input data given as a sequence. The :data-fn key specifies a
-  function which is applied to each element of the sequence (with its
-  idx as second argument) and should return the data of one gnuplot
-  dataset as values. The default data-fn handles numbers in the
-  sequence as y values and their index is taken as x value. In case
-  the sequence is comprised of subsequences, the first elements of the
-  sublists are interpreted as x y &rest z ... values. plot returns the
-  original data list."
-  (declare (ignore header options grid))
-  (let* ((region (or region (if (numberp (get-first data)) `(0 ,(1- (length data)))
-                                (get-first-min-max data))))
-         (gnuplot-instance (apply #'launch-gnuplot :region region args)))
-    (with-open-stream (out (uiop:process-info-input gnuplot-instance))
-      (map-indexed nil (lambda (idx x)
-                         (format out "~{~,4f~^ ~}~%"
-                                 (multiple-value-list (funcall data-fn idx x))))
-                   data)))
-  (values data))
-
-(defmacro with-gnuplot-instance ((stream args) &body body)
-  "start an external gnuplot process with a data input stream open for the extent of body..
+(defmacro with-gnuplot-instance ((stream &rest args)
+                                 &body body)
+  "start an external gnuplot process with a data input stream open for the extent of body.
 
 stream is bound to gnuplot's input stream. Printing to it is
 equivalent to printing into a file gnuplot is reading as a dataset
@@ -150,7 +128,7 @@ an external dataset."
                                                 (header *gnuplot-header*)
                                                 (data-fn #'gnuplot-data-fn)
                                                 (options *gnuplot-options*) (grid t))
-    "Plot input data given as a sequence. The :data-fn key specifies a
+  "Plot input data given as a sequence. The :data-fn key specifies a
   function which is applied to each element of the sequence (with its
   idx as second argument) and should return the data of one gnuplot
   dataset as values. The default data-fn handles numbers in the
@@ -163,32 +141,7 @@ an external dataset."
           (or region (if (numberp (get-first data))
                          `(0 ,(1- (length data)))
                          (get-first-min-max data))))
-    (let* ((gnuplot-instance (apply #'launch-gnuplot args)))
-      (with-open-stream (out (uiop:process-info-input gnuplot-instance))
-        (map-indexed nil (lambda (idx x)
-                           (format out "~{~,4f~^ ~}~%"
-                                   (multiple-value-list (funcall data-fn idx x))))
-                     data)))
-    (values data))
-
-(defmethod plot ((data sequence) &rest args &key region
-                                                (header *gnuplot-header*)
-                                                (data-fn #'gnuplot-data-fn)
-                                                (options *gnuplot-options*) (grid t))
-    "Plot input data given as a sequence. The :data-fn key specifies a
-  function which is applied to each element of the sequence (with its
-  idx as second argument) and should return the data of one gnuplot
-  dataset as values. The default data-fn handles numbers in the
-  sequence as y values and their index is taken as x value. In case
-  the sequence is comprised of subsequences, the first elements of the
-  sublists are interpreted as x y &rest z ... values. plot returns the
-  original data list."
-    (declare (ignore header options grid))
-    (setf (getf args :region)
-          (or region (if (numberp (get-first data))
-                         `(0 ,(1- (length data)))
-                         (get-first-min-max data))))
-    (with-gnuplot-instance (out args)
+    (with-gnuplot-instance (out . args)
       (map-indexed nil (lambda (idx x)
                          (format out "~{~,4f~^ ~}~%"
                                  (multiple-value-list (funcall data-fn idx x))))
@@ -220,7 +173,7 @@ an external dataset."
 :num-values the number of values to plot (default 100). Return the
 original function."
   (declare (ignore header options grid))
-  (with-gnuplot-instance (out args)
+  (with-gnuplot-instance (out . args)
     (destructuring-bind (xmin xmax) region
       (loop
          for count below (1+ num-values)
