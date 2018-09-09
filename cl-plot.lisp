@@ -133,9 +133,10 @@ an external dataset."
   idx as second argument) and should return the data of one gnuplot
   dataset as values. The default data-fn handles numbers in the
   sequence as y values and their index is taken as x value. In case
-  the sequence is comprised of subsequences, the first elements of the
-  sublists are interpreted as x y &rest z ... values. plot returns the
-  original data list."
+  the sequence is comprised of subsequences, the elements of the
+  subseqs are interpreted as (x y &rest z...) values. 
+
+  plot returns the original data sequence."
     (declare (ignore header options grid))
     (setf (getf args :region)
           (or region (if (numberp (get-first data))
@@ -169,9 +170,13 @@ an external dataset."
                  &key (region '(0 1)) (header *gnuplot-header*)
                    (options *gnuplot-options*) (num-values 100) (grid t)
                    &allow-other-keys)
-  "Plot function fn (fn has to be a function accepting 1 number argument). :region specifies xmin and xmax (default (0 1)),
-:num-values the number of values to plot (default 100). Return the
-original function."
+  "Plot function fn (fn has to be a function accepting 1 number argument). 
+
+:region specifies xmin and xmax (default (0 1)),
+
+:num-values the number of values to plot (default 100). 
+
+Return the original function."
   (declare (ignore header options grid))
   (with-gnuplot-instance (out . args)
     (destructuring-bind (xmin xmax) region
