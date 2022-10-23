@@ -112,8 +112,8 @@ in seq."
   "start an external gnuplot process with a data input stream open for the extent of body.
 
 stream is bound to gnuplot's input stream. Printing to it is
-equivalent to printing into a file gnuplot is reading as a dataset
-with its plot command.
+equivalent to printing into a file read by gnuplot as a dataset with
+its plot command.
 
 args are arguments sent to #'launch-gnuplot. 
 
@@ -133,7 +133,7 @@ an external dataset."
   idx as second argument) and should return the data of one gnuplot
   dataset as values. The default data-fn handles numbers in the
   sequence as y values and their index is taken as x value. In case
-  the sequence is comprised of subsequences, the elements of the
+   the sequence is comprised of subsequences, the elements of the
   subseqs are interpreted as (x y &rest z...) values. 
 
   plot returns the original data sequence."
